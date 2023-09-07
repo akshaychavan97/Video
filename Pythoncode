@@ -1,6 +1,7 @@
 import sys
+import os
 import pyautogui
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLineEdit, QLabel
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLineEdit, QLabel, QTextEdit
 from docx import Document
 from docx.shared import Inches
 
@@ -10,25 +11,28 @@ class ScreenshotApp(QMainWindow):
 
         self.screenshot_flag = False
         self.screenshot_counter = 1
+        self.test_case_name = "Evidence"  # Default value for Test Case Name
+        self.screenshot_key = "q"  # Default value for Enter Key for Screenshot
 
         self.initUI()
 
     def initUI(self):
-        self.setGeometry(100, 100, 400, 250)
+        self.setGeometry(100, 100, 600, 400)
         self.setWindowTitle("Screenshot App")
 
         # Set background color
         self.setStyleSheet("background-color: lightblue;")
 
         self.test_case_label = QLineEdit(self)
-        self.test_case_label.setPlaceholderText("Enter Test Case Name")
-        self.test_case_label.setGeometry(50, 20, 300, 30)
+        self.test_case_label.setPlaceholderText("Enter Test Case Name (Default: Evidence)")
+        self.test_case_label.setGeometry(50, 20, 500, 30)
 
-        self.key_label = QLabel("Enter Key for Screenshot:", self)
-        self.key_label.setGeometry(50, 70, 200, 30)
+        self.key_label = QLabel("Enter Key for Screenshot (Default: q):", self)
+        self.key_label.setGeometry(50, 70, 250, 30)
 
         self.key_input = QLineEdit(self)
-        self.key_input.setGeometry(250, 70, 100, 30)
+        self.key_input.setText("q")  # Set the default key
+        self.key_input.setGeometry(300, 70, 100, 30)
 
         self.start_button = QPushButton("Start", self)
         self.start_button.setGeometry(50, 120, 150, 30)
@@ -41,45 +45,71 @@ class ScreenshotApp(QMainWindow):
         self.end_button.clicked.connect(self.end_screenshot)
         self.end_button.setEnabled(False)
 
-    def start_screenshot(self):
-        self.test_case_name = self.test_case_label.text().strip()
-        if not self.test_case_name:
-            return
+        # Text edit for entering descriptions
+        self.description_edit = QTextEdit(self)
+        self.description_edit.setGeometry(50, 170, 500, 100)
+        self.description_edit.setPlaceholderText("Enter Description Here")
 
-        self.screenshot_key = self.key_input.text().strip()
-        if not self.screenshot_key:
-            return
+    def start_screenshot(self):
+        self.test_case_name = self.test_case_label.text().strip() or "Evidence"  # Use default if not entered
+        self.screenshot_key = self.key_input.text().strip() or "q"  # Use default if not entered
+
+        # Create a folder with just the test case name
+        folder_name = os.path.join(os.getcwd(), self.test_case_name)
+        os.makedirs(folder_name, exist_ok=True)
 
         self.screenshot_flag = True
         self.start_button.setEnabled(False)
         self.end_button.setEnabled(True)
+
+        # Gray out the input fields
+        self.test_case_label.setEnabled(False)
+        self.key_input.setEnabled(False)
 
     def end_screenshot(self):
         self.screenshot_flag = False
         self.start_button.setEnabled(True)
         self.end_button.setEnabled(False)
 
+        # Enable the input fields
+        self.test_case_label.setEnabled(True)
+        self.key_input.setEnabled(True)
+
         if self.screenshot_counter > 1:
             self.save_screenshot_to_word()
 
     def save_screenshot_to_word(self):
+        document_name = f'{self.test_case_name}.docx'
+
+        # Check if the document already exists
+        if os.path.exists(document_name):
+            # Find a version number to add to the document name
+            version_number = 1
+            while os.path.exists(f'{self.test_case_name}_v{version_number}.docx'):
+                version_number += 1
+
+            # Append the version number to the document name
+            document_name = f'{self.test_case_name}_v{version_number}.docx'
+
         document = Document()
-        document.add_heading('Screenshots', 0)
+        document.add_heading('Test Case: ' + self.test_case_name, 0)
 
         for i in range(1, self.screenshot_counter):
             screenshot_name = f'{self.test_case_name}_screenshot_{i}.png'
             pyautogui.screenshot(screenshot_name)
-            document.add_paragraph(f'Screenshot {i}:')
+
+            # Get the description from the text edit
+            description = self.description_edit.toPlainText()
+            self.description_edit.clear()  # Clear the description field
+
+            document.add_heading('Step ' + str(i), level=1)
+            document.add_paragraph(description)
+            document.add_paragraph('Screenshot ' + str(i) + ':')
             document.add_picture(screenshot_name, width=Inches(6))
-        
-        document_name = f'{self.test_case_name}_screenshots.docx'
+
         document.save(document_name)
 
-    def keyPressEvent(self, event):
-        if self.screenshot_flag and event.text() == self.screenshot_key:
-            screenshot_name = f'{self.test_case_name}_screenshot_{self.screenshot_counter}.png'
-            pyautogui.screenshot(screenshot_name)
-            self.screenshot_counter += 1
+    # ... rest of your code remains the same ...
 
 def main():
     app = QApplication(sys.argv)
