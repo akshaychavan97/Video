@@ -1,6 +1,6 @@
 import sys
 import pyautogui
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLineEdit
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLineEdit, QLabel
 from docx import Document
 from docx.shared import Inches
 
@@ -14,7 +14,7 @@ class ScreenshotApp(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setGeometry(100, 100, 400, 200)
+        self.setGeometry(100, 100, 400, 250)
         self.setWindowTitle("Screenshot App")
 
         # Set background color
@@ -22,7 +22,13 @@ class ScreenshotApp(QMainWindow):
 
         self.test_case_label = QLineEdit(self)
         self.test_case_label.setPlaceholderText("Enter Test Case Name")
-        self.test_case_label.setGeometry(50, 60, 300, 30)
+        self.test_case_label.setGeometry(50, 20, 300, 30)
+
+        self.key_label = QLabel("Enter Key for Screenshot:", self)
+        self.key_label.setGeometry(50, 70, 200, 30)
+
+        self.key_input = QLineEdit(self)
+        self.key_input.setGeometry(250, 70, 100, 30)
 
         self.start_button = QPushButton("Start", self)
         self.start_button.setGeometry(50, 120, 150, 30)
@@ -38,6 +44,10 @@ class ScreenshotApp(QMainWindow):
     def start_screenshot(self):
         self.test_case_name = self.test_case_label.text().strip()
         if not self.test_case_name:
+            return
+
+        self.screenshot_key = self.key_input.text().strip()
+        if not self.screenshot_key:
             return
 
         self.screenshot_flag = True
@@ -66,7 +76,7 @@ class ScreenshotApp(QMainWindow):
         document.save(document_name)
 
     def keyPressEvent(self, event):
-        if self.screenshot_flag and event.key() == 81:  # Check for 'Q' key
+        if self.screenshot_flag and event.text() == self.screenshot_key:
             screenshot_name = f'{self.test_case_name}_screenshot_{self.screenshot_counter}.png'
             pyautogui.screenshot(screenshot_name)
             self.screenshot_counter += 1
