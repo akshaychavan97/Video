@@ -1,0 +1,65 @@
+import sys
+import pyautogui
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton
+from docx import Document
+from docx.shared import Inches
+
+class ScreenshotApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.screenshot_flag = False
+        self.screenshot_counter = 1
+
+        self.initUI()
+
+    def initUI(self):
+        self.setGeometry(100, 100, 300, 150)
+        self.setWindowTitle("Screenshot App")
+
+        self.start_button = QPushButton("Start", self)
+        self.start_button.setGeometry(50, 50, 75, 30)
+        self.start_button.clicked.connect(self.start_screenshot)
+
+        self.end_button = QPushButton("End", self)
+        self.end_button.setGeometry(175, 50, 75, 30)
+        self.end_button.clicked.connect(self.end_screenshot)
+
+    def start_screenshot(self):
+        self.screenshot_flag = True
+        self.start_button.setEnabled(False)
+        self.end_button.setEnabled(True)
+
+    def end_screenshot(self):
+        self.screenshot_flag = False
+        self.start_button.setEnabled(True)
+        self.end_button.setEnabled(False)
+
+        if self.screenshot_counter > 1:
+            self.save_screenshot_to_word()
+
+    def save_screenshot_to_word(self):
+        document = Document()
+        document.add_heading('Screenshots', 0)
+
+        for i in range(1, self.screenshot_counter):
+            screenshot_name = f'screenshot_{i}.png'
+            pyautogui.screenshot(screenshot_name)
+            document.add_picture(screenshot_name, width=Inches(6))
+        
+        document.save('screenshots.docx')
+
+    def keyPressEvent(self, event):
+        if self.screenshot_flag and event.key() == 81:  # Check for 'Q' key
+            screenshot_name = f'screenshot_{self.screenshot_counter}.png'
+            pyautogui.screenshot(screenshot_name)
+            self.screenshot_counter += 1
+
+def main():
+    app = QApplication(sys.argv)
+    window = ScreenshotApp()
+    window.show()
+    sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()
