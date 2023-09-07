@@ -1,9 +1,14 @@
 import sys
 import os
 import pyautogui
+import logging
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLineEdit, QLabel, QTextEdit
 from docx import Document
 from docx.shared import Inches
+
+# Configure logging
+logging.basicConfig(filename='screenshot_app.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 class ScreenshotApp(QMainWindow):
     def __init__(self):
@@ -45,10 +50,9 @@ class ScreenshotApp(QMainWindow):
         self.end_button.clicked.connect(self.end_screenshot)
         self.end_button.setEnabled(False)
 
-        # Text edit for entering descriptions
-        self.description_edit = QTextEdit(self)
-        self.description_edit.setGeometry(50, 170, 500, 100)
-        self.description_edit.setPlaceholderText("Enter Description Here")
+        # Screenshot counter label
+        self.counter_label = QLabel("Screenshot Counter: 0", self)
+        self.counter_label.setGeometry(400, 120, 150, 30)
 
     def start_screenshot(self):
         self.test_case_name = self.test_case_label.text().strip() or "Evidence"  # Use default if not entered
@@ -66,6 +70,9 @@ class ScreenshotApp(QMainWindow):
         self.test_case_label.setEnabled(False)
         self.key_input.setEnabled(False)
 
+        # Log the start action
+        logging.info(f"Test Case: {self.test_case_name} - Start Screenshot")
+
     def end_screenshot(self):
         self.screenshot_flag = False
         self.start_button.setEnabled(True)
@@ -77,6 +84,9 @@ class ScreenshotApp(QMainWindow):
 
         if self.screenshot_counter > 1:
             self.save_screenshot_to_word()
+
+        # Log the end action
+        logging.info(f"Test Case: {self.test_case_name} - End Screenshot")
 
     def save_screenshot_to_word(self):
         document_name = f'{self.test_case_name}.docx'
@@ -94,22 +104,25 @@ class ScreenshotApp(QMainWindow):
         document = Document()
         document.add_heading('Test Case: ' + self.test_case_name, 0)
 
+        default_description = "Default Description"  # Default description
+
         for i in range(1, self.screenshot_counter):
             screenshot_name = f'{self.test_case_name}_screenshot_{i}.png'
             pyautogui.screenshot(screenshot_name)
 
-            # Get the description from the text edit
-            description = self.description_edit.toPlainText()
-            self.description_edit.clear()  # Clear the description field
-
             document.add_heading('Step ' + str(i), level=1)
-            document.add_paragraph(description)
+            document.add_paragraph(default_description)
             document.add_paragraph('Screenshot ' + str(i) + ':')
             document.add_picture(screenshot_name, width=Inches(6))
 
         document.save(document_name)
 
-    # ... rest of your code remains the same ...
+        # Log the document save action
+        logging.info(f"Test Case: {self.test_case_name} - Document Saved")
+
+    def increment_counter(self):
+        self.screenshot_counter += 1
+        self.counter_label.setText(f"Screenshot Counter: {self.screenshot_counter}")
 
 def main():
     app = QApplication(sys.argv)
