@@ -1,7 +1,6 @@
 import sys
 import pyautogui
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLineEdit, QLabel
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLineEdit
 from docx import Document
 from docx.shared import Inches
 
@@ -18,23 +17,20 @@ class ScreenshotApp(QMainWindow):
         self.setGeometry(100, 100, 400, 200)
         self.setWindowTitle("Screenshot App")
 
-        # Logo
-        logo_label = QLabel(self)
-        pixmap = QPixmap("logo.png")  # Replace "logo.png" with your logo file
-        logo_label.setPixmap(pixmap)
-        logo_label.setGeometry(120, 10, 160, 50)
+        # Set background color
+        self.setStyleSheet("background-color: lightblue;")
 
         self.test_case_label = QLineEdit(self)
         self.test_case_label.setPlaceholderText("Enter Test Case Name")
-        self.test_case_label.setGeometry(50, 80, 300, 30)
+        self.test_case_label.setGeometry(50, 60, 300, 30)
 
         self.start_button = QPushButton("Start", self)
-        self.start_button.setGeometry(50, 130, 150, 30)
+        self.start_button.setGeometry(50, 120, 150, 30)
         self.start_button.setStyleSheet("background-color: green; color: white;")
         self.start_button.clicked.connect(self.start_screenshot)
 
         self.end_button = QPushButton("End", self)
-        self.end_button.setGeometry(200, 130, 150, 30)
+        self.end_button.setGeometry(220, 120, 150, 30)
         self.end_button.setStyleSheet("background-color: red; color: white;")
         self.end_button.clicked.connect(self.end_screenshot)
         self.end_button.setEnabled(False)
