@@ -1,0 +1,153 @@
+import sys
+import os
+import pyautogui
+import logging
+import threading
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLineEdit, QLabel, QTextEdit
+from docx import Document
+from docx.shared import Inches
+from PyQt5.QtCore import Qt
+
+# Configure logging
+logging.basicConfig(filename='screenshot_app.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+class ScreenshotApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.screenshot_flag = False
+        self.screenshot_counter = 1
+        self.test_case_name = "Evidence"  # Default value for Test Case Name
+        self.screenshot_key = Qt.Key_Q  # Default value for Enter Key for Screenshot
+
+        self.initUI()
+
+        # Start the keypress detection thread
+        self.keypress_thread = threading.Thread(target=self.detect_keypress)
+        self.keypress_thread.daemon = True  # Allow the thread to be terminated when the main program exits
+        self.keypress_thread.start()
+
+    def initUI(self):
+        self.setGeometry(100, 100, 600, 400)
+        self.setWindowTitle("Screenshot App")
+
+        # Set background color
+        self.setStyleSheet("background-color: lightblue;")
+
+        self.test_case_label = QLineEdit(self)
+        self.test_case_label.setPlaceholderText("Enter Test Case Name (Default: Evidence)")
+        self.test_case_label.setGeometry(50, 20, 500, 30)
+
+        self.key_label = QLabel("Enter Key for Screenshot (Default: q):", self)
+        self.key_label.setGeometry(50, 70, 250, 30)
+
+        self.key_input = QLineEdit(self)
+        self.key_input.setText("q")  # Set the default key
+        self.key_input.setGeometry(300, 70, 100, 30)
+
+        self.start_button = QPushButton("Start", self)
+        self.start_button.setGeometry(50, 120, 150, 30)
+        self.start_button.setStyleSheet("background-color: green; color: white;")
+        self.start_button.clicked.connect(self.start_screenshot)
+
+        self.end_button = QPushButton("End", self)
+        self.end_button.setGeometry(220, 120, 150, 30)
+        self.end_button.setStyleSheet("background-color: red; color: white;")
+        self.end_button.clicked.connect(self.end_screenshot)
+        self.end_button.setEnabled(False)
+
+        # Screenshot counter label
+        self.counter_label = QLabel("Screenshot Counter: 0", self)
+        self.counter_label.setGeometry(400, 120, 150, 30)
+
+    def start_screenshot(self):
+        self.test_case_name = self.test_case_label.text().strip() or "Evidence"  # Use default if not entered
+        self.screenshot_key = self.key_input.text().strip() or "q"  # Use default if not entered
+
+        # Create a folder with just the test case name
+        folder_name = os.path.join(os.getcwd(), self.test_case_name)
+        os.makedirs(folder_name, exist_ok=True)
+
+        self.screenshot_flag = True
+        self.start_button.setEnabled(False)
+        self.end_button.setEnabled(True)
+
+        # Gray out the input fields
+        self.test_case_label.setEnabled(False)
+        self.key_input.setEnabled(False)
+
+        # Log the start action
+        logging.info(f"Test Case: {self.test_case_name} - Start Screenshot")
+
+    def end_screenshot(self):
+        self.screenshot_flag = False
+        self.start_button.setEnabled(True)
+        self.end_button.setEnabled(False)
+
+        # Enable the input fields
+        self.test_case_label.setEnabled(True)
+        self.key_input.setEnabled(True)
+
+        if self.screenshot_counter > 1:
+            self.save_screenshot_to_word()
+
+        # Log the end action
+        logging.info(f"Test Case: {self.test_case_name} - End Screenshot")
+
+    def save_screenshot_to_word(self):
+        folder_name = os.path.join(os.getcwd(), self.test_case_name)
+
+        # Check if the document already exists
+        document_name = os.path.join(folder_name, f'{self.test_case_name}.docx')
+        if os.path.exists(document_name):
+            # Find a version number to add to the document name
+            version_number = 1
+            while os.path.exists(os.path.join(folder_name, f'{self.test_case_name}_v{version_number}.docx')):
+                version_number += 1
+
+            # Append the version number to the document name
+            document_name = os.path.join(folder_name, f'{self.test_case_name}_v{version_number}.docx')
+
+        document = Document()
+        document.add_heading('Test Case: ' + self.test_case_name, 0)
+
+        default_description = "Default Description"  # Default description
+
+        for i in range(1, self.screenshot_counter):
+            screenshot_name = os.path.join(folder_name, f'{self.test_case_name}_screenshot_{i}.png')
+            pyautogui.screenshot(screenshot_name)
+
+            document.add_heading('Step ' + str(i), level=1)
+            document.add_paragraph(default_description)
+            document.add_paragraph('Screenshot ' + str(i) + ':')
+            document.add_picture(screenshot_name, width=Inches(6))
+
+        document.save(document_name)
+
+        # Log the document save action
+        logging.info(f"Test Case: {self.test_case_name} - Document Saved")
+
+    def detect_keypress(self):
+        while True:
+            key = input("Press 'q' to take a screenshot or 'exit' to quit: ")
+            
+            if key == self.screenshot_key and self.screenshot_flag:
+                screenshot_name = f'{self.test_case_name}_screenshot_{self.screenshot_counter}.png'
+                pyautogui.screenshot(screenshot_name)
+                self.increment_counter()
+            elif key.lower() == 'exit':
+                break
+
+    def increment_counter(self):
+        self.screenshot_counter += 1
+        self.counter_label.setText(f"Screenshot Counter: {self.screenshot_counter}")
+
+def main():
+    app = QApplication(sys.argv)
+    window = ScreenshotApp()
+    window.show()
+    sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()
