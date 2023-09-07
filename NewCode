@@ -1,8 +1,10 @@
 import sys
 import os
+import threading
+
+import keyboard
 import pyautogui
 import logging
-import threading
 from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLineEdit, QLabel, QTextEdit
 from docx import Document
 from docx.shared import Inches
@@ -19,13 +21,12 @@ class ScreenshotApp(QMainWindow):
         self.screenshot_flag = False
         self.screenshot_counter = 1
         self.test_case_name = "Evidence"  # Default value for Test Case Name
-        self.screenshot_key = Qt.Key_Q  # Default value for Enter Key for Screenshot
+        self.screenshot_key = "q" # Default value for Enter Key for Screenshot (Qt.Key_Q corresponds to "q")
 
         self.initUI()
-
         # Start the keypress detection thread
         self.keypress_thread = threading.Thread(target=self.detect_keypress)
-        self.keypress_thread.daemon = True  # Allow the thread to be terminated when the main program exits
+        self.keypress_thread.daemon = True  # Allow the thread to be erminated when the main program exits
         self.keypress_thread.start()
 
     def initUI(self):
@@ -128,20 +129,26 @@ class ScreenshotApp(QMainWindow):
         # Log the document save action
         logging.info(f"Test Case: {self.test_case_name} - Document Saved")
 
-    def detect_keypress(self):
-        while True:
-            key = input("Press 'q' to take a screenshot or 'exit' to quit: ")
-            
-            if key == self.screenshot_key and self.screenshot_flag:
-                screenshot_name = f'{self.test_case_name}_screenshot_{self.screenshot_counter}.png'
-                pyautogui.screenshot(screenshot_name)
-                self.increment_counter()
-            elif key.lower() == 'exit':
-                break
+    def takescreenshot(self):
+        logging.info(f"Taking ScreenShot")
+        screenshot_name = os.path.join(os.getcwd(), self.test_case_name,
+                                       f'{self.test_case_name}_screenshot_{self.screenshot_counter}.png')
+        pyautogui.screenshot(screenshot_name)
+        self.increment_counter()
+
+
 
     def increment_counter(self):
         self.screenshot_counter += 1
         self.counter_label.setText(f"Screenshot Counter: {self.screenshot_counter}")
+
+    def detect_keypress(self):
+        logging.info(f"Press {self.key_input} to Capture ScreenShot")
+        while True:
+         if self.screenshot_flag:
+            logging.info(f"Press {self.key_input} to Capture ScreenShot")
+            keyboard.on_press_key(self.key_input.text().strip(), self.takescreenshot())
+            keyboard.wait("END")
 
 def main():
     app = QApplication(sys.argv)
