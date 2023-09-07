@@ -17,7 +17,7 @@ class ScreenshotApp(QMainWindow):
         self.screenshot_flag = False
         self.screenshot_counter = 1
         self.test_case_name = "Evidence"  # Default value for Test Case Name
-        self.screenshot_key = "q"  # Default value for Enter Key for Screenshot
+        self.screenshot_key = 81  # Default value for Enter Key for Screenshot
 
         self.initUI()
 
@@ -119,6 +119,12 @@ class ScreenshotApp(QMainWindow):
 
         # Log the document save action
         logging.info(f"Test Case: {self.test_case_name} - Document Saved")
+
+    def keyPressEvent(self, event):
+        if self.screenshot_flag and event.text() == self.screenshot_key:
+            screenshot_name = f'{self.test_case_name}_screenshot_{self.screenshot_counter}.png'
+            pyautogui.screenshot(screenshot_name)
+            self.increment_counter()
 
     def increment_counter(self):
         self.screenshot_counter += 1
