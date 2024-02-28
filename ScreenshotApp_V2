@@ -5,10 +5,10 @@ import threading
 import keyboard
 import pyautogui
 import logging
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLineEdit, QLabel, QTextEdit
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLineEdit, QLabel
 from docx import Document
 from docx.shared import Inches
-from PyQt5.QtCore import Qt
+
 
 # Configure logging
 logging.basicConfig(filename='log_ScreenshotApp.log', level=logging.INFO,
@@ -19,17 +19,14 @@ class ScreenshotApp(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.screenshot_flag = False
+        self.take_screenshot_flag = False
         self.screenshot_counter = 1
         self.version_number = 1
         self.test_case_name = "Evidence"  # Default value for Test Case Name
         self.screenshot_key = "home"  # Default value for Enter Key for Screenshot (Qt.Key_Q corresponds to "q")
-        self.document_name=""
+        self.document_name = ""
         self.initUI()
-        # Start the keypress detection thread
-        self.keypress_thread = threading.Thread(target=self.detect_keypress)
-        self.keypress_thread.daemon = True  # Allow the thread to be erminated when the main program exits
-        self.keypress_thread.start()
+
 
     def initUI(self):
         self.setGeometry(100, 100, 600, 200)
@@ -70,8 +67,11 @@ class ScreenshotApp(QMainWindow):
         self.counter_label = QLabel("Screenshot Counter: 0", self)
         self.counter_label.setGeometry(400, 120, 150, 30)
 
+        self.developer_label = QLabel("@Developed By Voya India", self)
+        self.developer_label.setGeometry(400, 170, 160, 30)
+
     def start_screenshot(self):
-        self.document=Document()
+        self.document = Document()
         self.test_case_name = self.test_case_label.text().strip() or "Evidence"  # Use default if not entered
         self.screenshot_key = self.key_input.text().strip() or "home"  # Use default if not entered
 
@@ -92,7 +92,11 @@ class ScreenshotApp(QMainWindow):
         self.document.add_heading('Test Case: ' + self.test_case_name, 0)
         logging.info(f"Document Version: {self.version_number}")
         logging.info(f"Document Path: {self.document_name}")
-        self.screenshot_flag = True
+        self.take_screenshot_flag = True
+        self.keypress_thread = threading.Thread(target=self.detect_keypress)
+        # Start the keypress detection thread
+        self.keypress_thread.daemon = True  # Allow the thread to be Terminated when the main program exits
+        self.keypress_thread.start()
         self.start_button.setEnabled(False)
         self.end_button.setEnabled(True)
         self.start_button.setStyleSheet("background-colour: orange; color:white")
@@ -103,10 +107,12 @@ class ScreenshotApp(QMainWindow):
 
         # Log the start action
         logging.info(f"Test Case: {self.test_case_name} - Start Screenshot")
+        self.detect_keypress()
         self.showMinimized()
 
     def end_screenshot(self):
-        self.screenshot_flag = False
+        logging.info("End ScreenShot Started")
+        self.take_screenshot_flag = False
         self.start_button.setEnabled(True)
         self.end_button.setEnabled(False)
 
@@ -125,17 +131,17 @@ class ScreenshotApp(QMainWindow):
         logging.info(f"Test Case: {self.test_case_name} - End Screenshot")
 
     def takescreenshot(self):
-        logging.info(f"Taking ScreenShot")
+        logging.info(f"Taking ScreenShot No")
 
         screenshot_name = os.path.join(os.getcwd(), "Output",
-                                         f'{self.test_case_name}_screenshot_v{self.version_number}_{self.screenshot_counter}.png')
+                                       f'{self.test_case_name}_screenshot_v{self.version_number}_{self.screenshot_counter}.png')
         pyautogui.screenshot(screenshot_name)
         default_description = "Description :- "  # Default description
         if self.screenshot_counter > 1:
             self.document.add_page_break()
         self.document.add_heading('Step ' + str(self.screenshot_counter), level=1)
         self.document.add_paragraph(default_description)
-        self.document.add_paragraph('Screenshot No :- ' + str(self.screenshot_counter) )
+        # self.document.add_paragraph('Screenshot No :- ' + str(self.screenshot_counter))
         self.document.add_picture(screenshot_name, width=Inches(6))
         os.remove(screenshot_name)
         self.increment_counter()
@@ -144,14 +150,13 @@ class ScreenshotApp(QMainWindow):
         self.counter_label.setText(f"Screenshot Counter: {self.screenshot_counter}")
         self.screenshot_counter += 1
 
-
     def detect_keypress(self):
         logging.info(f"Press {self.key_input} to Capture ScreenShot")
-        while True:
+        while self.take_screenshot_flag:
             event = keyboard.read_event()
             if event.event_type == keyboard.KEY_DOWN and event.name == self.screenshot_key:
                 self.takescreenshot()
-            if event.event_type == keyboard.KEY_DOWN and event.name == "end":
+            elif event.event_type == keyboard.KEY_DOWN and event.name == "end":
                 self.end_screenshot()
 
 
