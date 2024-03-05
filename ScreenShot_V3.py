@@ -13,8 +13,6 @@ from docx.shared import Inches
 from PyQt5.QtCore import Qt
 
 
-# @Author - Akshay Chavan - akshay.chavan@voya.com - i723130
-# @Author - goutham S - goutham.satheesha@voya.com - i732746
 
 # Configure logging
 logging.basicConfig(filename='log_ScreenshotApp.log', level=logging.INFO,
@@ -83,7 +81,10 @@ class ScreenshotApp(QMainWindow):
         self.end_button.setEnabled(False)
 
         self.update_checkbox = QCheckBox("Use Existing File",self)
-        self.update_checkbox.setGeometry(400, 90, 150, 30)
+        self.update_checkbox.setGeometry(400, 90, 100, 30)
+
+        self.hide_taskbar = QCheckBox("Hide Task Bar", self)
+        self.hide_taskbar.setGeometry(510, 90, 100, 30)
 
         # Screenshot counter label
         self.counter_label = QLabel("Screenshot Counter: 0", self)
@@ -96,7 +97,7 @@ class ScreenshotApp(QMainWindow):
 
 
     def start_screenshot(self):
-        self.document=Document()
+
         self.test_case_name = self.test_case_label.text().strip() or "Evidence"  # Use default if not entered
         self.screenshot_key = self.key_input.text().strip() or "home"  # Use default if not entered
 
@@ -118,12 +119,13 @@ class ScreenshotApp(QMainWindow):
             self.document_name = os.path.join(folder_name, f'{self.test_case_name}_v{self.version_number}.docx')
         if os.path.exists(self.document_name):
             # Find a version number to add to the document name
-            existing_dcoument=Document(self.document_name)
-            self.screenshot_counter=len(existing_dcoument.inline_shapes)+1
-
-        self.document.add_heading('Test Case: ' + self.test_case_name, 0)
-        logging.info(f"Document Version: {self.version_number}")
-        logging.info(f"Document Path: {self.document_name}")
+            self.document=Document(self.document_name)
+            self.screenshot_counter=len(self.document.inline_shapes)+1
+        else:
+            self.document = Document()
+            self.document.add_heading('Test Case: ' + self.test_case_name, 0)
+            logging.info(f"Document Version: {self.version_number}")
+            logging.info(f"Document Path: {self.document_name}")
         self.take_screenshot_flag = True
         self.start_button.setEnabled(False)
         self.end_button.setEnabled(True)
@@ -161,13 +163,20 @@ class ScreenshotApp(QMainWindow):
 
         screenshot_name = os.path.join(os.getcwd(), "Output",
                                          f'{self.test_case_name}_screenshot_v{self.version_number}_{self.screenshot_counter}.png')
-        pyautogui.screenshot(screenshot_name)
+        if self.hide_taskbar.isChecked():
+            screen_width,screen_height=pyautogui.size()
+            taskbar_height=40
+            screenshot_area=(0,0,screen_width,screen_height-taskbar_height)
+            screenShot=pyautogui.screenshot(region=screenshot_area)
+            screenShot.save(screenshot_name)
+        else:
+            pyautogui.screenshot(screenshot_name)
         default_description = "Description :- "  # Default description
         if self.screenshot_counter > 1:
             self.document.add_page_break()
         self.document.add_heading('Step ' + str(self.screenshot_counter), level=1)
         self.document.add_paragraph(default_description)
-        self.document.add_paragraph('Screenshot No :- ' + str(self.screenshot_counter) )
+        #self.document.add_paragraph('Screenshot No :- ' + str(self.screenshot_counter) )
         self.document.add_picture(screenshot_name, width=Inches(6))
         os.remove(screenshot_name)
         self.increment_counter()
